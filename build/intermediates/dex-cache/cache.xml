@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="true"
+        jar="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="26.0.0"
+        sha1="f7dc349642e25a6d263de36bdb78b0ddc73ce009">
+        <dex dex="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run-bootstrap_19b147bc7d8ecee5921a102747d2bd3b33a6b803\classes.dex" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\libstreaming\build\intermediates\bundles\default\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="fb77767e293793d636eff8438eab985a2204e228">
+        <dex dex="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\pre-dexed\debug\classes_b1b6b695e799b29fccedc96909254ee5d488533a.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\Vijen\.android\build-cache\077326df7ade7f31f386ce5af3299b7a9223a253\output\jars\libs\internal_impl-23.2.1.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="607a3d0b8013b4ccbfeb0b7cb293351994e021fb">
+        <dex dex="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\pre-dexed\debug\internal_impl-23.2.1_f70829f8f76da8a5a253a7613e78cae29797b420.jar" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="26.0.0"
+        sha1="3be78ebc2706b2e1fe2f12d5726887a92d6c183b">
+        <dex dex="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run_2378b4c12c8e66bc93ceb7fcef8c9985052cd732\classes.dex" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\Vijen\.android\build-cache\077326df7ade7f31f386ce5af3299b7a9223a253\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="3be474b1b21b31cf2fa93fe6bd641ae108d96452">
+        <dex dex="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\pre-dexed\debug\classes_5e16a6772e15191f2defa219b9b1f579e3fcae9c.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\Vijen\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\23.2.1\support-annotations-23.2.1.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="ccb693bc0774fcb637246f7360de25b4af7df318">
+        <dex dex="C:\Users\Vijen\AndroidStudioProjects\Android Video Streaming\Android Video Streaming\example1\example1\build\intermediates\pre-dexed\debug\support-annotations-23.2.1_4ff7fdf4d61d70657a068437a211e796f3115e22.jar" />
+    </item>
+
+</items>

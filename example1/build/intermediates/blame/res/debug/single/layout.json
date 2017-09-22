@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "C:\\Users\\Vijen\\AndroidStudioProjects\\Android Video Streaming\\Android Video Streaming\\example1\\example1\\build\\intermediates\\res\\merged\\debug\\layout\\activitycapturecameraimage.xml",
+        "source": "C:\\Users\\Vijen\\AndroidStudioProjects\\Android Video Streaming\\Android Video Streaming\\example1\\example1\\src\\main\\res\\layout\\activitycapturecameraimage.xml"
+    },
+    {
+        "merged": "C:\\Users\\Vijen\\AndroidStudioProjects\\Android Video Streaming\\Android Video Streaming\\example1\\example1\\build\\intermediates\\res\\merged\\debug\\layout\\activity_main.xml",
+        "source": "C:\\Users\\Vijen\\AndroidStudioProjects\\Android Video Streaming\\Android Video Streaming\\example1\\example1\\src\\main\\res\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\Vijen\\AndroidStudioProjects\\Android Video Streaming\\Android Video Streaming\\example1\\example1\\build\\intermediates\\res\\merged\\debug\\layout\\cameraview.xml",
+        "source": "C:\\Users\\Vijen\\AndroidStudioProjects\\Android Video Streaming\\Android Video Streaming\\example1\\example1\\src\\main\\res\\layout\\cameraview.xml"
+    }
+]
