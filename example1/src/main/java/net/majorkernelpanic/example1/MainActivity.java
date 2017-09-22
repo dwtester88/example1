@@ -21,6 +21,7 @@ import android.util.Log;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -45,270 +46,267 @@ import java.util.Enumeration;
  */
 public class MainActivity extends Activity {
 
-	private final static String TAG = "MainActivity";
-	static final int SocketServerPORT = 1234;
-	ServerSocket serverSocket;
-	ServerSocketThread serverSocketThread;
+    private final static String TAG = "MainActivity";
+    static final int SocketServerPORT = 1234;
+    ServerSocket serverSocket;
+    ServerSocketThread serverSocketThread;
 
-	private SurfaceView mSurfaceView;
-	TextView ipaddress;
-	File file,file1;
-	Intent icam;
-
-
-
-	private static final int LISTENER_PORT = 50003;
+    private SurfaceView mSurfaceView;
+    TextView ipaddress;
+    File file, file1;
+    Intent icam;
 
 
-	private static final int BUF_SIZE = 1024;
-	private boolean IN_CALL = false;
-	private boolean LISTEN = false;
-	private boolean waitforpicture = true;
-
-	ReciverCall reciverCall = new ReciverCall();
-
-	BroadcastIP broadcastIP;
+    private static final int LISTENER_PORT = 50003;
 
 
+    private static final int BUF_SIZE = 1024;
+    private boolean IN_CALL = false;
+    private boolean LISTEN = false;
+    private boolean waitforpicture = true;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		setContentView(R.layout.activity_main);
-		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-		mSurfaceView = (SurfaceView) findViewById(R.id.surface);
-		ipaddress = (TextView) findViewById(R.id.ipaddress);
-		ipaddress.setText(getIpAddress());
+    ReciverCall reciverCall = new ReciverCall();
 
-		Log.d(TAG,"Mainactivity started and incoming call listener is about to start");
-
-		//Listner is turned ON to listen for incomming call (push to talk incoming call from client)
-		startCallListener();
-
-		// Sets the port of the RTSP server to 1234
-		Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
-		editor.putString(RtspServer.KEY_PORT, String.valueOf(8555));
-		editor.commit();
-
-		Log.d(TAG, "waitforpicture on start " +waitforpicture);
+    BroadcastIP broadcastIP;
 
 
-		// Configures the SessionBuilder
-		SessionBuilder.getInstance()
-		.setPreviewOrientation(0)
-		.setSurfaceView(mSurfaceView)
-		.setContext(getApplicationContext())
-		.setVideoQuality(new VideoQuality(176,144,10,100000))//my change
-		.setAudioEncoder(SessionBuilder.AUDIO_AAC)
-		.setVideoEncoder(SessionBuilder.VIDEO_H264)
-		.setCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        setContentView(R.layout.activity_main);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-		//Camera intent is used to take picture and save it in memory
-		/*try {
+        mSurfaceView = (SurfaceView) findViewById(R.id.surface);
+        ipaddress = (TextView) findViewById(R.id.ipaddress);
+        ipaddress.setText(getIpAddress());
+
+        Log.d(TAG, "Mainactivity started and incoming call listener is about to start");
+        //Listner is turned ON to listen for incomming call (push to talk incoming call from client)
+        startCallListener();
+        // Sets the port of the RTSP server to 1234
+
+        Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+        editor.putString(RtspServer.KEY_PORT, String.valueOf(8555));
+        editor.commit();
+        Log.d(TAG, "waitforpicture on start " + waitforpicture);
+        // Configures the SessionBuilder
+        SessionBuilder.getInstance()
+                .setPreviewOrientation(0)
+                .setSurfaceView(mSurfaceView)
+                .setContext(getApplicationContext())
+                .setVideoQuality(new VideoQuality(176, 144, 10, 100000))//my change
+                .setAudioEncoder(SessionBuilder.AUDIO_AAC)
+                .setVideoEncoder(SessionBuilder.VIDEO_H264)
+                .setCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
+
+        //Camera intent is used to take picture and save it in memory
+        /*try {
 			icam = new Intent(MainActivity.this, CameraView.class);
 			startActivityForResult(icam, 999);
 		} catch (Exception e) {
 			Log.d("error on camera intent", e.getMessage());
 		}*/
+        Log.d(TAG, "Camera intent is started to take picture and save for first time");
+        icam = new Intent(MainActivity.this, CameraView.class);
+        icam.putExtra("First", true);
+        icam.putExtra("wait_flag", true);
+        startActivityForResult(icam, 999);
 
-		Log.d(TAG,"Camera intent is started to take picture and save for first time");
-		icam = new Intent(MainActivity.this, CameraView.class);
-		icam.putExtra("First",true);
-		icam.putExtra("wait_flag",true);
-		startActivityForResult(icam, 999);
+        //This will broadcast the IPaddress of server to all the units in the network.
+        //broadcastIP= new BroadcastIP(getIpAddress(),getBroadcastIp());
+        // Starts the RTSP server
+        try {
+            Log.d(TAG, "RTSPServer intent is called");
+            this.startService(new Intent(this, RtspServer.class));
+        } catch (Exception e) {
+            Toast.makeText(getApplicationContext(), "keyport: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+        isDeviceSupportCamera();
 
-		//This will broadcast the IPaddress of server to all the units in the network.
-		//broadcastIP= new BroadcastIP(getIpAddress(),getBroadcastIp());
+        // ServerSocket Thread is used to catch the picture request from the client and take picture and send it to client.
+        serverSocketThread = new ServerSocketThread();
+        serverSocketThread.start();
 
+    }
 
-		// Starts the RTSP server
-		try {
-			Log.d(TAG,"RTSPServer intent is called");
-			this.startService(new Intent(this, RtspServer.class));
-		}
-		catch (Exception e){
-			Toast.makeText(getApplicationContext(),"keyport: "+e.getMessage(),Toast.LENGTH_LONG).show();
-		}
-		isDeviceSupportCamera();
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-		// ServerSocket Thread is used to catch the picture request from the client and take picture and send it to client.
-		serverSocketThread = new ServerSocketThread();
-		serverSocketThread.start();
+        if (resultCode == Activity.RESULT_OK) {
+            Log.d(TAG, "Camera intent returns OK Code");
+            //waitforpicture=false;
+            if (data.getBooleanExtra("result", false)) {
+                Log.d(TAG, "Camera took piture for first time");
 
-	}
+                Log.d(TAG, " activity result" + data.getBooleanExtra("result", false));
+                //This will broadcast the IPaddress of server to all the units in the network.
+                broadcastIP = new BroadcastIP(getIpAddress(), getBroadcastIp());
+            }
+            waitforpicture = data.getBooleanExtra("wait_flag", true);
+        }
+        if (resultCode == Activity.RESULT_CANCELED) {
+            //Write your code if there's no result
+        }
 
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 
-			if(resultCode == Activity.RESULT_OK){
-				Log.d(TAG,"Camera intent returns OK Code");
-				//waitforpicture=false;
-				if(data.getBooleanExtra("result",false)){
-					Log.d(TAG,"Camera took piture for first time");
+    private InetAddress getBroadcastIp() {
+        // Function to return the broadcast address, based on the IP address of the device
+        try {
 
-					Log.d(TAG," activity result"+data.getBooleanExtra("result",false));
-					//This will broadcast the IPaddress of server to all the units in the network.
-					broadcastIP= new BroadcastIP(getIpAddress(),getBroadcastIp());
-				}
-				waitforpicture=data.getBooleanExtra("wait_flag",true);
-			}
-			if (resultCode == Activity.RESULT_CANCELED) {
-				//Write your code if there's no result
-			}
+            WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+            int ipAddress = wifiInfo.getIpAddress();
+            String addressString = toBroadcastIp(ipAddress);
+            InetAddress broadcastAddress = InetAddress.getByName(addressString);
+            return broadcastAddress;
+        } catch (UnknownHostException e) {
 
-		super.onActivityResult(requestCode, resultCode, data);
-	}
+            Log.e("MainAvtivity", "UnknownHostException in getBroadcastIP: " + e);
+            return null;
+        }
 
-	private InetAddress getBroadcastIp() {
-		// Function to return the broadcast address, based on the IP address of the device
-		try {
+    }
 
-			WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-			WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-			int ipAddress = wifiInfo.getIpAddress();
-			String addressString = toBroadcastIp(ipAddress);
-			InetAddress broadcastAddress = InetAddress.getByName(addressString);
-			return broadcastAddress;
-		}
-		catch(UnknownHostException e) {
+    private void isDeviceSupportCamera() {
+        if (getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            Toast.makeText(getApplicationContext(), "Device has Camera", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "Device doesnot supportCamera", Toast.LENGTH_LONG).show();
+        }
+    }
 
-			Log.e("MainAvtivity", "UnknownHostException in getBroadcastIP: " + e);
-			return null;
-		}
+    private String getIpAddress() {
+        String ip = "";
+        try {
+            Enumeration<NetworkInterface> enumNetworkInterfaces = NetworkInterface
+                    .getNetworkInterfaces();
+            while (enumNetworkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = enumNetworkInterfaces
+                        .nextElement();
+                Enumeration<InetAddress> enumInetAddress = networkInterface
+                        .getInetAddresses();
+                while (enumInetAddress.hasMoreElements()) {
+                    InetAddress inetAddress = enumInetAddress.nextElement();
 
-	}
+                    if (inetAddress.isSiteLocalAddress()) {
+                        ip += inetAddress.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            ip += "Something Wrong! " + e.toString() + "\n";
+        }
+        return ip;
+    }
 
-	private void isDeviceSupportCamera() {
-		if (getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-			Toast.makeText(getApplicationContext(), "Device has Camera", Toast.LENGTH_LONG).show();
-		} else {
-			Toast.makeText(getApplicationContext(), "Device doesnot supportCamera", Toast.LENGTH_LONG).show();
-		}
-	}
+    public class ServerSocketThread extends Thread {
+        @Override
+        public void run() {
+            Socket socket = null;
+            try {
+                serverSocket = new ServerSocket(SocketServerPORT);
+                MainActivity.this.runOnUiThread(new Runnable() {
 
-	private String getIpAddress() {
-		String ip = "";
-		try {
-			Enumeration<NetworkInterface> enumNetworkInterfaces = NetworkInterface
-					.getNetworkInterfaces();
-			while (enumNetworkInterfaces.hasMoreElements()) {
-				NetworkInterface networkInterface = enumNetworkInterfaces
-						.nextElement();
-				Enumeration<InetAddress> enumInetAddress = networkInterface
-						.getInetAddresses();
-				while (enumInetAddress.hasMoreElements()) {
-					InetAddress inetAddress = enumInetAddress.nextElement();
-
-					if (inetAddress.isSiteLocalAddress()) {
-						ip += inetAddress.getHostAddress();
-					}
-				}
-			}
-		} catch (SocketException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			ip += "Something Wrong! " + e.toString() + "\n";
-		}
-		return ip;
-	}
-
-	public class ServerSocketThread extends Thread {
-		@Override
-		public void run() {
-			Socket socket = null;
-			try {
-				serverSocket = new ServerSocket(SocketServerPORT);
-				MainActivity.this.runOnUiThread(new Runnable() {
-
-					@Override
-					public void run() {
+                    @Override
+                    public void run() {
 //						infoPort.setText("Port: "
 //								+ serverSocket.getLocalPort());
-					}
-				});
-				while (true) {
-					socket = serverSocket.accept();
-					Log.d(TAG,"Server Socket started"+socket.getInetAddress().toString());
-					FileTxThread fileTxThread = new FileTxThread(socket);
-					fileTxThread.start();
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} finally {
-				if (socket != null) {
-					try {
-						socket.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			}
-		}
-	}
-	public class FileTxThread extends Thread {
-		Socket socket;
-		FileTxThread(Socket socket) {
-			this.socket = socket;
-		}
-		@Override
-		public void run() {
+                    }
+                });
+                while (true) {
+                    socket = serverSocket.accept();
+                    Log.d(TAG, "Server Socket started" + socket.getInetAddress().toString());
+                    FileTxThread fileTxThread = new FileTxThread(socket);
+                    fileTxThread.start();
+                }
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } finally {
+                if (socket != null) {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
 
-			DataInputStream dis = null;
-			String ClientCommand=null;
-			try {
-				dis = new DataInputStream(socket.getInputStream());
-				ClientCommand = dis.readUTF();
-				//dis.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			Log.d("json is ", ClientCommand);
-			file = new File(
-					Environment.getExternalStorageDirectory(),
-					"test2.png");
-			byte[] bytes = new byte[(int) file.length()];
-			BufferedInputStream bis;
+    public class FileTxThread extends Thread {
+        Socket socket;
 
-			if(ClientCommand.contains("First")){
-				//if(file.exists()){
+        FileTxThread(Socket socket) {
+            this.socket = socket;
+        }
 
-					try {
-						Log.d("ClientCommand ",ClientCommand);
-						bis = new BufferedInputStream(new FileInputStream(file));
-						bis.read(bytes, 0, bytes.length);
-						OutputStream os = socket.getOutputStream();
-						os.write(bytes, 0, bytes.length);
-						os.flush();
+        @Override
+        public void run() {
 
-						final String sentMsg = "File sent to: " + socket.getInetAddress().toString();
-						socket.close();
-						//file.delete();
-						MainActivity.this.runOnUiThread(new Runnable() {
+            DataInputStream dis = null;
+            String ClientCommand = null;
+            try {
+                dis = new DataInputStream(socket.getInputStream());
+                ClientCommand = dis.readUTF();
+                //dis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            Log.d("json is ", ClientCommand);
+            file = new File(
+                    Environment.getExternalStorageDirectory(),
+                    "test2.png");
 
-							@Override
-							public void run() {
-								Toast.makeText(MainActivity.this,
-										sentMsg,
-										Toast.LENGTH_LONG).show();
-							}
-						});
-					} catch (FileNotFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} finally {
-						try {
-							socket.close();
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+            BufferedInputStream bis;
+            byte[] bytes;
+
+            // socket will send first message if picture is asked for first time automatically
+            if (ClientCommand.contains("First")) {
+
+                bytes = new byte[(int) file.length()];
+                //if(file.exists()){
+
+                try {
+                    Log.d("ClientCommand ", ClientCommand);
+                    bis = new BufferedInputStream(new FileInputStream(file));
+                    bis.read(bytes, 0, bytes.length);
+                    OutputStream os = socket.getOutputStream();
+                    os.write(bytes, 0, bytes.length);
+                    os.flush();
+
+                    final String sentMsg = "File sent to: " + socket.getInetAddress().toString();
+                    socket.close();
+                    //file.delete();
+                    MainActivity.this.runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this,
+                                    sentMsg,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+                } catch (FileNotFoundException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
 
 					/*//send pitture
 				}
@@ -369,68 +367,69 @@ public class MainActivity extends Activity {
 				}
 				//check for saved piture or take picture one time and save
 */
-			}
-			else if(ClientCommand.contains("SNAP")){
-				file.delete();
-				try {
-					icam = new Intent(MainActivity.this, CameraView.class);
-					icam.putExtra("wait_flag",false);
-					startActivityForResult(icam, 999);
-				} catch (Exception e) {
-					Log.d("error on camera intent", e.getMessage());
-				}
+			// if it message received from socket contains SNAP the take picture and then send the file
+            } else if (ClientCommand.contains("SNAP")) {
+                file.delete();
+                try {
+                    icam = new Intent(MainActivity.this, CameraView.class);
+                    icam.putExtra("wait_flag", false);
+                    startActivityForResult(icam, 999);
+                } catch (Exception e) {
+                    Log.d("error on camera intent", e.getMessage());
+                }
 
 				/*try {
 					Thread.sleep(4500); // 7.5sec delay so that picture is taken and saved in memory later we will streamout
 				} catch (InterruptedException ex) {
 					System.out.println("I'm interrupted");
 				}
-*/				Log.d(TAG, "waitforpicture before loop " +waitforpicture);
-				while (waitforpicture){
+*/
+                Log.d(TAG, "waitforpicture before loop " + waitforpicture);
+                while (waitforpicture) {
 
-				// waiting for picture to be saved.
-				}
-				Log.d(TAG, "waitforpicture after loop " +waitforpicture);
+                    // waiting for picture to be saved.
+                }
+                Log.d(TAG, "waitforpicture after loop " + waitforpicture);
 
                 bytes = new byte[(int) file.length()];
-				waitforpicture = true;
+                waitforpicture = true;
 
-				try {
-					//Log.d("contains ",ClientCommand);
-					bis = new BufferedInputStream(new FileInputStream(file));
-					bis.read(bytes, 0, bytes.length);
-					OutputStream os = socket.getOutputStream();
-					os.write(bytes, 0, bytes.length);
-					os.flush();
+                try {
+                    //Log.d("contains ",ClientCommand);
+                    bis = new BufferedInputStream(new FileInputStream(file));
+                    bis.read(bytes, 0, bytes.length);
+                    OutputStream os = socket.getOutputStream();
+                    os.write(bytes, 0, bytes.length);
+                    os.flush();
 
-					final String sentMsg = "File sent to: " + socket.getInetAddress().toString();
-					socket.close();
-					//file.delete();
-					MainActivity.this.runOnUiThread(new Runnable() {
+                    final String sentMsg = "File sent to: " + socket.getInetAddress().toString();
+                    socket.close();
+                    //file.delete();
+                    MainActivity.this.runOnUiThread(new Runnable() {
 
-						@Override
-						public void run() {
-							Toast.makeText(MainActivity.this,
-									sentMsg,
-									Toast.LENGTH_LONG).show();
-						}
-					});
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} finally {
-					try {
-						socket.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				//take picture and delete
-			}
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this,
+                                    sentMsg,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+                } catch (FileNotFoundException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+                //take picture and delete
+            }
 
 
 
@@ -452,93 +451,93 @@ public class MainActivity extends Activity {
 					Environment.getExternalStorageDirectory(),
 					"test2.png");*/
 
-		}
-	}
+        }
+    }
 
-	@Override
-	protected void onDestroy() {
-		file.delete();
-		super.onDestroy();
-	}
-
-	private void startCallListener() {
-		// Creates the listener thread
-		LISTEN = true;
-		Thread listener = new Thread(new Runnable() {
-
-			@Override
-			public void run() {
-
-				try {
-					// Set up the socket and packet to receive
-					Log.i(TAG, "Incoming call listener started");
-					DatagramSocket socket = null;
-					try {
-						 socket = new DatagramSocket(LISTENER_PORT);
-					}catch (SocketException e) {
-
-						Log.e(TAG, "SocketExcepion in listener: " + e);
-						return;
-					}
-
-					//DatagramSocket socket = new DatagramSocket(LISTENER_PORT);
-					socket.setSoTimeout(10000);
-					byte[] buffer = new byte[BUF_SIZE];
-					DatagramPacket packet = new DatagramPacket(buffer, BUF_SIZE);
-					while(LISTEN) {
-						// Listen for incoming call requests
-						try {
-							Log.i(TAG, "Listening for incoming calls" );
-							socket.receive(packet);
-							String data = new String(buffer, 0, packet.getLength());
-							Log.i(TAG, "Packet received from "+ packet.getAddress() +" with contents: " + data);
-							String action = data.substring(0, 4);
-							if(action.equals("CAL:")) {
-
-								Log.i(TAG, "CAL: is received so accept the call" );
-								// Received a call request. Start the ReceiveCallActivity
-								String address = packet.getAddress().toString();
-								String name = data.substring(4, packet.getLength());
-
-								//Intent intent = new Intent(MainActivity.this, ReceiveCallActivity.class);
-								reciverCall.acceptcall(address.substring(1, address.length()));
-
-								//intent.putExtra(EXTRA_CONTACT, name);
-								//intent.putExtra(EXTRA_IP, address.substring(1, address.length()));
-								IN_CALL = true;
-								//LISTEN = false;
-								//stopCallListener();
-								//startActivity(intent);
-							}
-							else {
-								// Received an invalid request
-								Log.w(TAG, packet.getAddress() + " sent invalid message: " + data);
-							}
-						}
-						catch(Exception e) {}
-					}
-					Log.i(TAG, "Call Listener ending");
-					socket.disconnect();
-					socket.close();
-				}
-				catch(SocketException e) {
-
-					Log.e(TAG, "SocketException in listener " + e);
-				}
-			}
-		});
-		listener.start();
-	}
+    @Override
+    protected void onDestroy() {
+        //delete the file when app is closed
+        file.delete();
+        super.onDestroy();
+    }
 
 
-	private String toBroadcastIp(int ip) {
-		// Returns converts an IP address in int format to a formatted string
-		return (ip & 0xFF) + "." +
-				((ip >> 8) & 0xFF) + "." +
-				((ip >> 16) & 0xFF) + "." +
-				"255";
-	}
+    //Lister is turned on to listen for any incoming call
+    private void startCallListener() {
+        // Creates the listener thread
+        LISTEN = true;
+        Thread listener = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+
+                try {
+                    // Set up the socket and packet to receive
+                    Log.i(TAG, "Incoming call listener started");
+                    DatagramSocket socket = null;
+                    try {
+                        socket = new DatagramSocket(LISTENER_PORT);
+                    } catch (SocketException e) {
+
+                        Log.e(TAG, "SocketExcepion in listener: " + e);
+                        return;
+                    }
+
+                    //DatagramSocket socket = new DatagramSocket(LISTENER_PORT);
+                    socket.setSoTimeout(10000);
+                    byte[] buffer = new byte[BUF_SIZE];
+                    DatagramPacket packet = new DatagramPacket(buffer, BUF_SIZE);
+                    while (LISTEN) {
+                        // Listen for incoming call requests
+                        try {
+                            Log.i(TAG, "Listening for incoming calls");
+                            socket.receive(packet);
+                            String data = new String(buffer, 0, packet.getLength());
+                            Log.i(TAG, "Packet received from " + packet.getAddress() + " with contents: " + data);
+                            String action = data.substring(0, 4);
+                            if (action.equals("CAL:")) {
+
+                                Log.i(TAG, "CAL: is received so accept the call");
+                                // Received a call request. Start the ReceiveCallActivity
+                                String address = packet.getAddress().toString();
+                                String name = data.substring(4, packet.getLength());
+
+                                //Intent intent = new Intent(MainActivity.this, ReceiveCallActivity.class);
+                                reciverCall.acceptcall(address.substring(1, address.length()));
+
+                                //intent.putExtra(EXTRA_CONTACT, name);
+                                //intent.putExtra(EXTRA_IP, address.substring(1, address.length()));
+                                IN_CALL = true;
+                                //LISTEN = false;
+                                //stopCallListener();
+                                //startActivity(intent);
+                            } else {
+                                // Received an invalid request
+                                Log.w(TAG, packet.getAddress() + " sent invalid message: " + data);
+                            }
+                        } catch (Exception e) {
+                        }
+                    }
+                    Log.i(TAG, "Call Listener ending");
+                    socket.disconnect();
+                    socket.close();
+                } catch (SocketException e) {
+
+                    Log.e(TAG, "SocketException in listener " + e);
+                }
+            }
+        });
+        listener.start();
+    }
 
 
-	
+    private String toBroadcastIp(int ip) {
+        // Returns converts an IP address in int format to a formatted string
+        return (ip & 0xFF) + "." +
+                ((ip >> 8) & 0xFF) + "." +
+                ((ip >> 16) & 0xFF) + "." +
+                "255";
+    }
+
+
 }
